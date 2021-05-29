@@ -1,0 +1,103 @@
+<import name="tab-content-item" src="./tabitem"></import>
+
+<template>
+  <div class="tabs-page">
+    <!-- tabs组件 -->
+    <tabs onchange="onChangeTabIndex">
+      <tab-bar class="tab-bar">
+        <text
+          for="{{tabs}}"
+          tid="{{$item}}"
+          class="{{current === $idx ? 'selected' : '' }}"
+          >{{ $item }}</text
+        >
+      </tab-bar>
+      <tab-content class="tab-content">
+        <div class="tab-content-section" for="{{tabs}}">
+          <tab-content-item
+            list="{{allFeeds[$idx]}}"
+            onload-more="fetch()"
+            show-load="{{showLoad}}"
+          ></tab-content-item>
+        </div>
+      </tab-content>
+    </tabs>
+  </div>
+</template>
+
+<script>
+const SIZE = 10;
+const ITEMS_FOR_SKELETON = [undefined, undefined, undefined, undefined, undefined];
+export default {
+  private: {
+    tabs: ['饮食', '艺术', '健康', '教育', '运动', '旅行', '工作', '家居'],
+    tabCate: ['饮食与休闲', '艺术与娱乐', '健康', '教育与交流', '运动与保健', '旅行', '工作', '家居与园艺'],
+    allFeeds: [],
+    current: 0,
+    loaded: false
+  },
+
+  computed: {
+    currentCate() {
+      return this.tabCate[this.current]
+    },
+    currentFeeds() {
+      return this.allFeeds[this.current]
+    },
+    showLoad() {
+      return this.currentFeeds.length && !this.loaded
+    },
+    currentLoading() {
+      return this.currentFeeds[0] === undefined
+    }
+  },
+
+  onInit() {
+    this.tabs.map((_, idx) => {
+      this.allFeeds.push(ITEMS_FOR_SKELETON);
+    })
+    this.fetch({ offset: 0 })
+  },
+
+  fetch(q = {}) {
+    const query = {
+      size: SIZE,
+      offset: this.currentFeeds.length,
+      ...q
+    }
+    this.loaded = false
+    $apis.xiaozuowen
+      .getFeeds(this.currentCate, query)
+      .then(({ list }) => {
+        const feeds = query.offset ? this.currentFeeds.concat(list) : list
+        this.allFeeds.splice(this.current, 1, feeds)
+        console.log("this.currentFeeds", this.currentFeeds)
+        console.log("this.current", this.current)
+      })
+      .finally(() => {
+        this.loading = true
+      })
+  },
+
+  onChangeTabIndex({ index }) {
+    console.log("index", index)
+    this.current = index
+    if (this.currentLoading) {
+      this.fetch({ offset: 0 })
+    }
+  }
+
+}
+</script>
+
+<style lang="scss">
+.tabs-page {
+}
+
+.tab-bar {
+  .selected {
+    font-weight: bold;
+    color: #0000ff;
+  }
+}
+</style>
